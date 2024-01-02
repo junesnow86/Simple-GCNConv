@@ -4,7 +4,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
-from utils import negative_sample, shuffle
+from sklearn.metrics import f1_score, roc_auc_score
+
+from utils import negative_sample, shuffle, evaluate
 
 
 class Trainer:
@@ -24,12 +26,19 @@ class Trainer:
         random.seed(self.seed)
         np.random.seed(self.seed)
 
-    def acc(self, logits, labels):
-        if self.task == 'Node Classification':    
-            pred = np.argmax(logits, axis=1)
-            labels = labels.reshape(len(labels))
-            assert len(pred) == len(labels)
-            acc = np.sum(pred == labels) / len(labels)
+    def metric(self, logits, labels, type='Top 1 Accuracy', threshold=0.5):
+        if self.task == 'Node Classification':
+            if type == 'Top 1 Accuracy':
+                pred = np.argmax(logits, axis=1)
+                labels = labels.reshape(len(labels))
+                assert len(pred) == len(labels)
+                acc = np.sum(pred == labels) / len(labels)
+                return acc
+            elif type == 'F1 Score':
+                pred = logits >= threshold
+                assert len(pred) == len(labels)
+                f1 = f1_score(labels, pred, average='micro')
+                return f1
         elif self.task == 'Link Prediction':
             pred = logits >= 0.9
             acc = np.sum(pred == labels) / len(labels)
@@ -37,21 +46,26 @@ class Trainer:
             raise NotImplementedError
         return acc
 
-    def train(self, epochs=200, lr=0.01, wait=3):
+    def train(self, epochs=200, lr=0.01, wait=3, type='single-label'):
         if self.task == 'Node Classification':
-            return self.train_node_classification(epochs, lr, wait)
+            return self.train_node_classification(epochs, lr, wait, type)
         elif self.task == 'Link Prediction':
             return self.train_link_prediction(epochs, lr, wait)
         else:
             raise NotImplementedError
 
-    def train_node_classification(self, epochs=200, lr=0.01, wait=3):
+    def train_node_classification(self, epochs=200, lr=0.01, wait=3, type='single-label'):
         device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
         self.model.to(device)
         self.data.to(device)
 
         optimizer = torch.optim.Adam(self.model.parameters(), lr=lr, weight_decay=5e-4)
-        criterion = torch.nn.CrossEntropyLoss()
+        if type == 'single-label':
+            criterion = torch.nn.CrossEntropyLoss()
+        elif type == 'multi-label':
+            criterion = torch.nn.BCEWithLogitsLoss()
+        else:
+            raise NotImplementedError
 
         print('>>> Start training...')
         min_validation_loss = float('inf')
@@ -63,14 +77,14 @@ class Trainer:
         for epoch in range(epochs):
             optimizer.zero_grad()
             out = self.model(self.data)
-            loss = criterion(out[self.data.train_mask], self.data.y[self.data.train_mask])
+            loss = criterion(out[self.data.train_mask], self.data.y[self.data.train_mask].type_as(out))
             loss.backward()
             optimizer.step()
 
             train_loss = loss.item()
             logits = out[self.data.train_mask].detach().cpu().numpy()
             labels = self.data.y[self.data.train_mask].detach().cpu().numpy()
-            train_acc = self.acc(logits, labels)
+            train_acc = self.metric(logits, labels, type='F1 Score' if type == 'multi-label' else 'Top 1 Accuracy')
             self.loss_list['train'].append(train_loss)
             self.acc_list['train'].append(train_acc)
 
@@ -80,7 +94,7 @@ class Trainer:
                 val_loss = loss.item()
                 logits = out[self.data.val_mask].detach().cpu().numpy()
                 labels = self.data.y[self.data.val_mask].detach().cpu().numpy()
-                val_acc = self.acc(logits, labels)
+                val_acc = self.metric(logits, labels, type='F1 Score' if type == 'multi-label' else 'Top 1 Accuracy')
                 self.loss_list['val'].append(val_loss)
                 self.acc_list['val'].append(val_acc)
 

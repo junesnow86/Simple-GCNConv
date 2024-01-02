@@ -48,7 +48,6 @@ class MyGCNConv(torch.nn.Module):
     def propagate(self, edge_index, x, norm):
         source, target = edge_index
         out = torch.zeros_like(x)
-        out_v2 = torch.zeros_like(x)
 
         # Normalize the node features
         norm_x = x[source] * norm.view(-1, 1)
@@ -68,7 +67,7 @@ class MyGCNForNodeClassification(torch.nn.Module):
         x, edge_index = data.x, data.edge_index
         x = self.conv1(x, edge_index)
         x = F.relu(x)
-        # x = torch.dropout(x, p=0.2, train=self.training)
+        x = F.dropout(x, p=0.2, training=self.training)
         x = self.conv2(x, edge_index)
         return x
 
@@ -80,12 +79,8 @@ class MyGCNConvForLinkPrediction(torch.nn.Module):
 
     def forward(self, x, edge_index, edge_label_index):
         x = self.conv1(x, edge_index)
-        # x = torch.relu(x)
-        # x = torch.sigmoid(x)
-        # x = torch.tanh(x)
-        # x = F.leaky_relu(x)
-        x = F.elu(x)
-        # x = torch.dropout(x, p=0.2, train=self.training)
+        x = F.relu(x)
+        x = F.dropout(x, p=0.2, training=self.training)
         x = self.conv2(x, edge_index)
 
         src = x[edge_label_index[0]]
