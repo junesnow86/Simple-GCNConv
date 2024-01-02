@@ -1,10 +1,10 @@
 import torch
 from torch_geometric.utils import negative_sampling
-from torch_geometric.transforms import Compose, NormalizeFeatures, RandomLinkSplit
+from sklearn.metrics import roc_auc_score
 
 @torch.no_grad()
 def evaluate(model, data, task='Node Classification', threshold=0.5):
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
     model.to(device)
     data.to(device)
     model.eval()

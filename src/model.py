@@ -67,7 +67,7 @@ class MyGCNForNodeClassification(torch.nn.Module):
     def forward(self, data):
         x, edge_index = data.x, data.edge_index
         x = self.conv1(x, edge_index)
-        x = torch.relu(x)
+        x = F.relu(x)
         # x = torch.dropout(x, p=0.2, train=self.training)
         x = self.conv2(x, edge_index)
         return x

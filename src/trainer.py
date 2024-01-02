@@ -46,7 +46,7 @@ class Trainer:
             raise NotImplementedError
 
     def train_node_classification(self, epochs=200, lr=0.01, wait=3):
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
         self.model.to(device)
         self.data.to(device)
 
@@ -102,7 +102,7 @@ class Trainer:
         return self.model
 
     def train_link_prediction(self, epochs=200, lr=0.01, wait=3):
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
         self.model.to(device)
         # self.data.to(device)
         train_data, val_data, _ = self.data
