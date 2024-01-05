@@ -3,7 +3,6 @@ import torch.nn.functional as F
 from torch.nn import Linear, Parameter
 
 
-
 class MyGCNConv(torch.nn.Module):
     def __init__(self, in_channels, out_channels):
         super().__init__()

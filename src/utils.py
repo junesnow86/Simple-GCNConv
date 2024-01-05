@@ -1,6 +1,7 @@
 import torch
-from torch_geometric.utils import negative_sampling
 from sklearn.metrics import f1_score, roc_auc_score
+from torch_geometric.utils import negative_sampling
+
 
 @torch.no_grad()
 def evaluate(model, data, task='Node Classification', metric='Top 1 Accuracy', threshold=0.5):
@@ -24,8 +25,11 @@ def evaluate(model, data, task='Node Classification', metric='Top 1 Accuracy', t
         else:
             raise NotImplementedError
     elif task == 'Link Prediction':
-        # TODO: use AUC to evaluate link prediction performance
-        pass
+        # use AUC to evaluate link prediction performance
+        logits =  model(data.x, data.edge_index, data.edge_label_index).view(-1)
+        probs = torch.sigmoid(logits)
+        auc = roc_auc_score(data.edge_label.cpu().numpy(), probs.cpu().numpy())
+        return auc
     else:
         raise NotImplementedError
 

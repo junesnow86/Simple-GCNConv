@@ -3,10 +3,9 @@ import random
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-
 from sklearn.metrics import f1_score, roc_auc_score
 
-from utils import negative_sample, shuffle, evaluate
+from utils import negative_sample, shuffle
 
 
 class Trainer:
@@ -39,12 +38,15 @@ class Trainer:
                 assert len(pred) == len(labels)
                 f1 = f1_score(labels, pred, average='micro')
                 return f1
+            else:
+                raise NotImplementedError
         elif self.task == 'Link Prediction':
-            pred = logits >= 0.9
-            acc = np.sum(pred == labels) / len(labels)
+            # use AUC to evaluate link prediction performance
+            probs = 1 / (1 + np.exp(-logits))
+            auc = roc_auc_score(labels, probs)
+            return auc
         else:
             raise NotImplementedError
-        return acc
 
     def train(self, epochs=200, lr=0.01, wait=3, type='single-label'):
         if self.task == 'Node Classification':
@@ -72,12 +74,12 @@ class Trainer:
         acc_of_min_validation_loss = 0.0
         delay = 0
         self.loss_list = {'train': [], 'val': []}
-        self.acc_list = {'train': [], 'val': []}
+        self.metric_list = {'train': [], 'val': []}
         self.model.train()
         for epoch in range(epochs):
             optimizer.zero_grad()
             out = self.model(self.data)
-            loss = criterion(out[self.data.train_mask], self.data.y[self.data.train_mask].type_as(out))
+            loss = criterion(out[self.data.train_mask], self.data.y[self.data.train_mask])
             loss.backward()
             optimizer.step()
 
@@ -86,7 +88,7 @@ class Trainer:
             labels = self.data.y[self.data.train_mask].detach().cpu().numpy()
             train_acc = self.metric(logits, labels, type='F1 Score' if type == 'multi-label' else 'Top 1 Accuracy')
             self.loss_list['train'].append(train_loss)
-            self.acc_list['train'].append(train_acc)
+            self.metric_list['train'].append(train_acc)
 
             with torch.no_grad():
                 out = self.model(self.data)
@@ -96,7 +98,7 @@ class Trainer:
                 labels = self.data.y[self.data.val_mask].detach().cpu().numpy()
                 val_acc = self.metric(logits, labels, type='F1 Score' if type == 'multi-label' else 'Top 1 Accuracy')
                 self.loss_list['val'].append(val_loss)
-                self.acc_list['val'].append(val_acc)
+                self.metric_list['val'].append(val_acc)
 
             print(f'Epoch {epoch+1}: train loss: {train_loss:.4f}, train acc: {train_acc:.4f}; val loss: {val_loss:.4f}, val acc: {val_acc:.4f}')
 
@@ -118,7 +120,6 @@ class Trainer:
     def train_link_prediction(self, epochs=200, lr=0.01, wait=3):
         device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
         self.model.to(device)
-        # self.data.to(device)
         train_data, val_data, _ = self.data
         train_data.to(device)
         val_data.to(device)
@@ -128,10 +129,10 @@ class Trainer:
 
         print('>>> Start training...')
         min_validation_loss = float('inf')
-        acc_of_min_validation_loss = 0.0
+        auc_of_min_validation_loss = 0.0
         delay = 0
         self.loss_list = {'train': [], 'val': []}
-        self.acc_list = {'train': [], 'val': []}
+        self.metric_list = {'train': [], 'val': []}
         self.model.train()
         for epoch in range(epochs):
             optimizer.zero_grad()
@@ -145,9 +146,9 @@ class Trainer:
             train_loss = loss.item()
             logits = torch.sigmoid(out).detach().cpu().numpy()
             labels = edge_label.detach().cpu().numpy()
-            train_acc = self.acc(logits, labels)
+            train_auc = self.metric(logits, labels)
             self.loss_list['train'].append(train_loss)
-            self.acc_list['train'].append(train_acc)
+            self.metric_list['train'].append(train_auc)
 
             with torch.no_grad():
                 out = self.model(val_data.x, val_data.edge_index, val_data.edge_label_index).view(-1)
@@ -155,23 +156,23 @@ class Trainer:
                 val_loss = loss.item()
                 logits = out.detach().cpu().numpy()
                 labels = val_data.edge_label.detach().cpu().numpy()
-                val_acc = self.acc(logits, labels)
+                val_auc = self.metric(logits, labels)
                 self.loss_list['val'].append(val_loss)
-                self.acc_list['val'].append(val_acc)
+                self.metric_list['val'].append(val_auc)
 
-            print(f'Epoch {epoch+1}: train loss: {train_loss:.4f}, train acc: {train_acc:.4f}; val loss: {val_loss:.4f}, val acc: {val_acc:.4f}')
+            print(f'Epoch {epoch+1}: train loss: {train_loss:.4f}, train auc: {train_auc:.4f}; val loss: {val_loss:.4f}, val auc: {val_auc:.4f}')
 
             if val_loss < min_validation_loss:
                 min_validation_loss = val_loss
                 print(f'Update min validation loss: {min_validation_loss:.4f}')
-                acc_of_min_validation_loss = val_acc
+                auc_of_min_validation_loss = val_auc
                 delay = 0
             else:
                 delay += 1
                 if delay >= wait:
                     print(f'Early stopping at epoch {epoch+1}')
                     break
-        print(f'>>> Training finished. Min validation loss: {min_validation_loss:.4f}, acc: {acc_of_min_validation_loss:.4f}')
+        print(f'>>> Training finished. Min validation loss: {min_validation_loss:.4f}, auc: {auc_of_min_validation_loss:.4f}')
         self.plot_loss()
         self.plot_acc()
         return self.model
@@ -188,8 +189,8 @@ class Trainer:
 
     def plot_acc(self):
         plt.figure()
-        plt.plot(self.acc_list['train'], label='train acc', color='red')
-        plt.plot(self.acc_list['val'], label='validation acc', color='blue')
+        plt.plot(self.metric_list['train'], label='train acc', color='red')
+        plt.plot(self.metric_list['val'], label='validation acc', color='blue')
         plt.legend()
         plt.xlabel('Epoch')
         plt.ylabel('Accuracy')
