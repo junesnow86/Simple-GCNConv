@@ -8,8 +8,9 @@ from trainer import Trainer
 from utils import evaluate
 
 if __name__ == '__main__':
-    dataset = 'PPI'
+    dataset = 'Cora'
     print(f'performing on dataset: {dataset}')
+
     random.seed(86)
     if dataset == 'PPI':
         type = 'multi-label'
@@ -53,10 +54,45 @@ if __name__ == '__main__':
         num_features = data.num_features
         num_classes = dataset.num_classes
 
-    model = MyGCNForNodeClassification(num_features, num_classes, 16, 2)
+    # Hyperparameters
+    # num_layers = 2
+    # add_self_loops = True
+    # drop_edges = True
+    # pairnorm = True
+    # activation = 'relu'
 
-    trainer = Trainer(model, data, task='Node Classification', fig_name='../figures/default')
-    model = trainer.train(epochs=100, type=type)
-    print('testing')
-    result = evaluate(model, data, 'Node Classification', metric=metric)
-    print(f'{metric}: {result:.4f}')
+    best_metric = 0.0
+    for num_layers in [2, 3, 4]:
+        for add_self_loops in [True, False]:
+            for drop_edges in [True, False]:
+                for pairnorm in [True, False]:
+                    for activation in ['relu', 'tanh', 'sigmoid']:
+                        print(f'num_layers: {num_layers}, add_self_loops: {add_self_loops}, drop_edges: {drop_edges}, pairnorm: {pairnorm}, activation: {activation}')
+                        
+                        model = MyGCNForNodeClassification(
+                            in_channels=num_features, 
+                            out_channels=num_classes, 
+                            hidden_dim=16, 
+                            num_layers=2,
+                            add_self_loops=add_self_loops,
+                            drop_edges=drop_edges,
+                            pairnorm=pairnorm,
+                            activation=activation)
+
+                        trainer = Trainer(model, data, task='Node Classification', fig_name='../figures/default')
+                        model = trainer.train(epochs=100, type=type)
+                        print('testing')
+                        result = evaluate(model, data, 'Node Classification', metric=metric)
+                        print(f'{metric}: {result:.4f}')
+                        if result > best_metric:
+                            best_metric = result
+                            best_params = {
+                                'num_layers': num_layers,
+                                'add_self_loops': add_self_loops,
+                                'drop_edges': drop_edges,
+                                'pairnorm': pairnorm,
+                                'activation': activation
+                            }
+
+    print(f'best {metric}: {best_metric:.4f}')
+    print(f'best params: {best_params}')

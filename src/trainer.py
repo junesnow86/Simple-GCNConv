@@ -113,8 +113,8 @@ class Trainer:
                     print(f'Early stopping at epoch {epoch+1}')
                     break
         print(f'>>> Training finished. Min validation loss: {min_validation_loss:.4f}, acc: {acc_of_min_validation_loss:.4f}')
-        self.plot_loss()
-        self.plot_acc()
+        # self.plot_loss()
+        # self.plot_acc()
         return self.model
 
     def train_link_prediction(self, epochs=200, lr=0.01, wait=3):
@@ -173,8 +173,8 @@ class Trainer:
                     print(f'Early stopping at epoch {epoch+1}')
                     break
         print(f'>>> Training finished. Min validation loss: {min_validation_loss:.4f}, auc: {auc_of_min_validation_loss:.4f}')
-        self.plot_loss()
-        self.plot_acc()
+        # self.plot_loss()
+        # self.plot_acc()
         return self.model
 
     def plot_loss(self):

@@ -66,13 +66,13 @@ class MyGCNConv(torch.nn.Module):
 
 class MyGCNForNodeClassification(torch.nn.Module):
     def __init__(self, in_channels, out_channels, hidden_dim, num_layers, 
-                 add_self_loops=True, drop_edges=True, activation='relu'):
+                 add_self_loops=True, drop_edges=True, pairnorm=True, activation='relu'):
         super().__init__()
         self.convs = ModuleList()
-        self.convs.append(MyGCNConv(in_channels, hidden_dim, add_self_loops))
+        self.convs.append(MyGCNConv(in_channels, hidden_dim, add_self_loops, pairnorm))
         for _ in range(num_layers - 2):
-            self.convs.append(MyGCNConv(hidden_dim, hidden_dim, add_self_loops))
-        self.convs.append(MyGCNConv(hidden_dim, out_channels, add_self_loops))
+            self.convs.append(MyGCNConv(hidden_dim, hidden_dim, add_self_loops, pairnorm))
+        self.convs.append(MyGCNConv(hidden_dim, out_channels, add_self_loops, pairnorm))
 
         assert activation in ['relu', 'tanh', 'sigmoid']
         if activation == 'relu':
@@ -96,13 +96,13 @@ class MyGCNForNodeClassification(torch.nn.Module):
 
 class MyGCNConvForLinkPrediction(torch.nn.Module):
     def __init__(self, in_channels, out_channels, hidden_dim, num_layers, 
-                 add_self_loops=True, drop_edges=True, activation='relu'):
+                 add_self_loops=True, drop_edges=True, pairnorm=True, activation='relu'):
         super().__init__()
         self.convs = ModuleList()
-        self.convs.append(MyGCNConv(in_channels, hidden_dim, add_self_loops))
+        self.convs.append(MyGCNConv(in_channels, hidden_dim, add_self_loops, pairnorm))
         for _ in range(num_layers - 2):
-            self.convs.append(MyGCNConv(hidden_dim, hidden_dim, add_self_loops))
-        self.convs.append(MyGCNConv(hidden_dim, out_channels, add_self_loops))
+            self.convs.append(MyGCNConv(hidden_dim, hidden_dim, add_self_loops, pairnorm))
+        self.convs.append(MyGCNConv(hidden_dim, out_channels, add_self_loops, pairnorm))
 
         assert activation in ['relu', 'tanh', 'sigmoid']
         if activation == 'relu':
