@@ -95,8 +95,8 @@ if __name__ == '__main__':
         num_layers=2, 
         add_self_loops=True,
         drop_edges=True,
-        pairnorm=True,
-        activation='sigmoid'
+        pairnorm=False,
+        activation='tanh'
     )
 
     trainer = Trainer(model, data, task='Node Classification', fig_name='../figures/nc/PPI')
@@ -120,7 +120,7 @@ if __name__ == '__main__':
     model = MyGCNConvForLinkPrediction(
         num_features, 
         16, 
-        hidden_dim=64, 
+        hidden_dim=32, 
         num_layers=2, 
         add_self_loops=True,
         drop_edges=True,
@@ -146,7 +146,7 @@ if __name__ == '__main__':
     model = MyGCNConvForLinkPrediction(
         num_features, 
         16, 
-        hidden_dim=64, 
+        hidden_dim=32, 
         num_layers=2, 
         add_self_loops=True,
         drop_edges=True,
@@ -191,7 +191,7 @@ if __name__ == '__main__':
     model = MyGCNConvForLinkPrediction(
         num_features, 
         16, 
-        hidden_dim=64, 
+        hidden_dim=32, 
         num_layers=2, 
         add_self_loops=True,
         drop_edges=True,
