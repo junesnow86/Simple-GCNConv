@@ -1,14 +1,18 @@
 import torch
 import torch.nn.functional as F
-from torch.nn import Linear, Parameter
+from torch.nn import Linear, Parameter, ModuleList
 
+from utils import drop_edges
 
 class MyGCNConv(torch.nn.Module):
-    def __init__(self, in_channels, out_channels):
+    def __init__(self, in_channels, out_channels, add_self_loops=True, pairnorm=True):
         super().__init__()
         self.lin = Linear(in_channels, out_channels, bias=False)
         self.bias = Parameter(torch.empty(out_channels))
         self.reset_parameters()
+
+        self.asl = add_self_loops
+        self.pairnorm = pairnorm
 
     def reset_parameters(self):
         self.lin.reset_parameters()
@@ -18,19 +22,23 @@ class MyGCNConv(torch.nn.Module):
         # x has shape [N, in_channels]
         # edge_index has shape [2, E]
 
-        # Step 1: Add self-loops to the adjacency matrix.
-        edge_index = self.add_self_loops(edge_index)
+        if self.asl:
+            # Step 1: Add self-loops to the adjacency matrix.
+            edge_index = self.add_self_loops(edge_index)
 
         # Step 2: Linearly transform node feature matrix.
         x = self.lin(x)
 
         # Step 3: Calculate the normalization
-        source, target = edge_index
-        deg = torch.bincount(source)  # deg has shape [N]
-        assert torch.all(deg == torch.bincount(target)), 'Error: source and target have different degrees'
-        deg_inv_sqrt = deg.pow(-0.5)
-        deg_inv_sqrt[deg_inv_sqrt == float('inf')] = 0
-        norm = deg_inv_sqrt[source] * deg_inv_sqrt[target]  # each edge has a norm value
+        if self.pairnorm:
+            source, target = edge_index
+            deg = torch.bincount(source)  # deg has shape [N]
+            # assert torch.all(deg == torch.bincount(target)), 'Error: source and target have different degrees'
+            deg_inv_sqrt = deg.pow(-0.5)
+            deg_inv_sqrt[deg_inv_sqrt == float('inf')] = 0
+            norm = deg_inv_sqrt[source] * deg_inv_sqrt[target]  # each edge has a norm value
+        else:
+            norm = torch.ones(edge_index.size(1), dtype=x.dtype, device=x.device)
 
         # Step 4: Perform the propagation
         out = self.propagate(edge_index, x=x, norm=norm)
@@ -57,30 +65,62 @@ class MyGCNConv(torch.nn.Module):
         return out
 
 class MyGCNForNodeClassification(torch.nn.Module):
-    def __init__(self, in_channels, out_channels):
+    def __init__(self, in_channels, out_channels, hidden_dim, num_layers, 
+                 add_self_loops=True, drop_edges=True, activation='relu'):
         super().__init__()
-        self.conv1 = MyGCNConv(in_channels, 16)
-        self.conv2 = MyGCNConv(16, out_channels)
+        self.convs = ModuleList()
+        self.convs.append(MyGCNConv(in_channels, hidden_dim, add_self_loops))
+        for _ in range(num_layers - 2):
+            self.convs.append(MyGCNConv(hidden_dim, hidden_dim, add_self_loops))
+        self.convs.append(MyGCNConv(hidden_dim, out_channels, add_self_loops))
+
+        assert activation in ['relu', 'tanh', 'sigmoid']
+        if activation == 'relu':
+            self.activation = F.relu
+        elif activation == 'tanh':
+            self.activation = F.tanh
+        else:
+            self.activation = F.sigmoid
+
+        self.drop_edges = drop_edges
 
     def forward(self, data):
         x, edge_index = data.x, data.edge_index
-        x = self.conv1(x, edge_index)
-        x = F.relu(x)
-        x = F.dropout(x, p=0.2, training=self.training)
-        x = self.conv2(x, edge_index)
+        if self.training and self.drop_edges:
+            edge_index = drop_edges(edge_index)
+        for i in range(len(self.convs) - 1):
+            x = self.convs[i](x, edge_index)
+            x = self.activation(x)
+        x = self.convs[-1](x, edge_index)
         return x
 
 class MyGCNConvForLinkPrediction(torch.nn.Module):
-    def __init__(self, input_dim, hidden_dim=16):
+    def __init__(self, in_channels, out_channels, hidden_dim, num_layers, 
+                 add_self_loops=True, drop_edges=True, activation='relu'):
         super().__init__()
-        self.conv1 = MyGCNConv(input_dim, hidden_dim)
-        self.conv2 = MyGCNConv(hidden_dim, hidden_dim)
+        self.convs = ModuleList()
+        self.convs.append(MyGCNConv(in_channels, hidden_dim, add_self_loops))
+        for _ in range(num_layers - 2):
+            self.convs.append(MyGCNConv(hidden_dim, hidden_dim, add_self_loops))
+        self.convs.append(MyGCNConv(hidden_dim, out_channels, add_self_loops))
+
+        assert activation in ['relu', 'tanh', 'sigmoid']
+        if activation == 'relu':
+            self.activation = F.relu
+        elif activation == 'tanh':
+            self.activation = F.tanh
+        else:
+            self.activation = F.sigmoid
+
+        self.drop_edges = drop_edges
 
     def forward(self, x, edge_index, edge_label_index):
-        x = self.conv1(x, edge_index)
-        x = F.relu(x)
-        x = F.dropout(x, p=0.2, training=self.training)
-        x = self.conv2(x, edge_index)
+        if self.training and self.drop_edges:
+            edge_index = drop_edges(edge_index)
+        for i in range(len(self.convs) - 1):
+            x = self.convs[i](x, edge_index)
+            x = self.activation(x)
+        x = self.convs[-1](x, edge_index)
 
         src = x[edge_label_index[0]]
         dst = x[edge_label_index[1]]

@@ -8,8 +8,8 @@ from trainer import Trainer
 from utils import evaluate
 
 if __name__ == '__main__':
-    # dataset = Planetoid(root='/storage/1008ljt/courses/DL/exp4/data', name='Cora')
-    dataset = Planetoid(root='/storage/1008ljt/courses/DL/exp4/data', name='CiteSeer')
+    dataset = Planetoid(root='/storage/1008ljt/courses/DL/exp4/data', name='Cora')
+    # dataset = Planetoid(root='/storage/1008ljt/courses/DL/exp4/data', name='CiteSeer')
     data = dataset[0]
 
     test_ppi = True
@@ -48,7 +48,7 @@ if __name__ == '__main__':
         num_features = data.num_features
         num_classes = dataset.num_classes
 
-    model = MyGCNForNodeClassification(num_features, num_classes)
+    model = MyGCNForNodeClassification(num_features, num_classes, 16, 2)
 
     trainer = Trainer(model, data, task='Node Classification', fig_name='../figures/default')
     model = trainer.train(epochs=100, type=type)

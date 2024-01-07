@@ -48,3 +48,10 @@ def shuffle(edge_label, edge_label_index):
     edge_label = edge_label[indices]
     edge_label_index = edge_label_index[:, indices]
     return edge_label, edge_label_index
+
+def drop_edges(edge_index, p=0.2):
+    # edge_index has shape [2, E]
+    num_edges = edge_index.size(1)
+    mask = torch.rand(num_edges) > p
+    edge_index = edge_index[:, mask]
+    return edge_index

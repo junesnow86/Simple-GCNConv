@@ -11,8 +11,8 @@ from utils import evaluate
 if __name__ == '__main__':
     transform = Compose([NormalizeFeatures(), RandomLinkSplit(is_undirected=True, add_negative_train_samples=False)])
 
-    # dataset = Planetoid(root='/storage/1008ljt/courses/DL/exp4/data', name='Cora', transform=transform)
-    dataset = Planetoid(root='/storage/1008ljt/courses/DL/exp4/data', name='CiteSeer', transform=transform)
+    dataset = Planetoid(root='/storage/1008ljt/courses/DL/exp4/data', name='Cora', transform=transform)
+    # dataset = Planetoid(root='/storage/1008ljt/courses/DL/exp4/data', name='CiteSeer', transform=transform)
     data = dataset[0]
 
     test_ppi = False
@@ -50,7 +50,7 @@ if __name__ == '__main__':
         num_features = data[0].num_features
         num_classes = dataset.num_classes
 
-    model = MyGCNConvForLinkPrediction(num_features, 16)
+    model = MyGCNConvForLinkPrediction(num_features, 16, 32, 2)
 
     trainer = Trainer(model, data, task='Link Prediction', fig_name='../figures/link_prediction')
     model = trainer.train(epochs=200, lr=0.1)
