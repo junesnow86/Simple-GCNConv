@@ -69,7 +69,7 @@ if __name__ == '__main__':
             for drop_edges in [True, False]:
                 for pairnorm in [True, False]:
                     for activation in ['relu', 'tanh', 'sigmoid']:
-                        model = MyGCNConvForLinkPrediction(num_features, 16, 32, num_layers, add_self_loops, drop_edges,
+                        model = MyGCNConvForLinkPrediction(num_features, 16, 64, num_layers, add_self_loops, drop_edges,
                                                            pairnorm, activation)
 
                         trainer = Trainer(model, data, task='Link Prediction', fig_name='../figures/link_prediction')

@@ -70,8 +70,10 @@ class Trainer:
             raise NotImplementedError
 
         print('>>> Start training...')
-        min_validation_loss = float('inf')
-        acc_of_min_validation_loss = 0.0
+        # min_validation_loss = float('inf')
+        max_validation_acc = 0.0
+        # acc_of_min_validation_loss = 0.0
+        loss_of_max_validation_acc = float('inf')
         delay = 0
         self.loss_list = {'train': [], 'val': []}
         self.metric_list = {'train': [], 'val': []}
@@ -102,19 +104,21 @@ class Trainer:
 
             print(f'Epoch {epoch+1}: train loss: {train_loss:.4f}, train acc: {train_acc:.4f}; val loss: {val_loss:.4f}, val acc: {val_acc:.4f}')
 
-            if val_loss < min_validation_loss:
-                min_validation_loss = val_loss
-                print(f'Update min validation loss: {min_validation_loss:.4f}')
-                acc_of_min_validation_loss = val_acc
+            # if val_loss < min_validation_loss:
+            if val_acc > max_validation_acc:
+                # min_validation_loss = val_loss
+                max_validation_acc = val_acc
+                print(f'Update max validation acc: {max_validation_acc:.4f}')
+                loss_of_max_validation_acc = val_loss
                 delay = 0
             else:
                 delay += 1
                 if delay >= wait:
                     print(f'Early stopping at epoch {epoch+1}')
                     break
-        print(f'>>> Training finished. Min validation loss: {min_validation_loss:.4f}, acc: {acc_of_min_validation_loss:.4f}')
-        # self.plot_loss()
-        # self.plot_acc()
+        print(f'>>> Training finished. Min validation loss: {loss_of_max_validation_acc:.4f}, acc: {max_validation_acc:.4f}')
+        self.plot_loss()
+        self.plot_metric(type='F1 Score' if type == 'multi-label' else 'Top 1 Accuracy')
         return self.model
 
     def train_link_prediction(self, epochs=200, lr=0.01, wait=3):
@@ -128,8 +132,8 @@ class Trainer:
         criterion = torch.nn.BCEWithLogitsLoss()
 
         print('>>> Start training...')
-        min_validation_loss = float('inf')
-        auc_of_min_validation_loss = 0.0
+        max_validation_auc = 0.0
+        loss_of_max_validation_acc = float('inf')
         delay = 0
         self.loss_list = {'train': [], 'val': []}
         self.metric_list = {'train': [], 'val': []}
@@ -162,19 +166,19 @@ class Trainer:
 
             print(f'Epoch {epoch+1}: train loss: {train_loss:.4f}, train auc: {train_auc:.4f}; val loss: {val_loss:.4f}, val auc: {val_auc:.4f}')
 
-            if val_loss < min_validation_loss:
-                min_validation_loss = val_loss
-                print(f'Update min validation loss: {min_validation_loss:.4f}')
-                auc_of_min_validation_loss = val_auc
+            if val_auc > max_validation_auc:
+                max_validation_auc = val_auc
+                print(f'Update max validation auc: {max_validation_auc:.4f}')
+                loss_of_max_validation_acc = val_loss
                 delay = 0
             else:
                 delay += 1
                 if delay >= wait:
                     print(f'Early stopping at epoch {epoch+1}')
                     break
-        print(f'>>> Training finished. Min validation loss: {min_validation_loss:.4f}, auc: {auc_of_min_validation_loss:.4f}')
-        # self.plot_loss()
-        # self.plot_acc()
+        print(f'>>> Training finished. Min validation loss: {loss_of_max_validation_acc:.4f}, auc: {max_validation_auc:.4f}')
+        self.plot_loss()
+        self.plot_metric(type='AUC')
         return self.model
 
     def plot_loss(self):
@@ -187,12 +191,12 @@ class Trainer:
         plt.title('Training and validation loss with epochs')
         plt.savefig(f'{self.fig_name}_loss.png')
 
-    def plot_acc(self):
+    def plot_metric(self, type='Top 1 Accuracy'):
         plt.figure()
         plt.plot(self.metric_list['train'], label='train acc', color='red')
         plt.plot(self.metric_list['val'], label='validation acc', color='blue')
         plt.legend()
         plt.xlabel('Epoch')
-        plt.ylabel('Accuracy')
-        plt.title('Training and validation accuracy with epochs')
-        plt.savefig(f'{self.fig_name}_acc.png')
+        plt.ylabel(f'{type}')
+        plt.title(f'Training and validation {type} with epochs')
+        plt.savefig(f'{self.fig_name}_metric.png')
