@@ -11,12 +11,10 @@ from utils import evaluate
 if __name__ == '__main__':
     transform = Compose([NormalizeFeatures(), RandomLinkSplit(is_undirected=True, add_negative_train_samples=False)])
 
-    dataset = Planetoid(root='/storage/1008ljt/courses/DL/exp4/data', name='Cora', transform=transform)
-    # dataset = Planetoid(root='/storage/1008ljt/courses/DL/exp4/data', name='CiteSeer', transform=transform)
-    data = dataset[0]
-
-    test_ppi = False
-    if test_ppi:
+    dataset = 'PPI'
+    print(f'performing on dataset: {dataset}')
+    random.seed(86)
+    if dataset == 'PPI':
         # PPI dataset
         train_dataset = PPI(root='/storage/1008ljt/courses/DL/exp4/data/PPI', split='train', transform=transform)
         val_dataset = PPI(root='/storage/1008ljt/courses/DL/exp4/data/PPI', split='val', transform=transform)
@@ -47,6 +45,13 @@ if __name__ == '__main__':
         num_features = data[0].num_features
         num_classes = train_dataset.num_classes
     else:
+        if dataset == 'Cora':
+            dataset = Planetoid(root='/storage/1008ljt/courses/DL/exp4/data', name='Cora', transform=transform)
+        elif dataset == 'CiteSeer':
+            dataset = Planetoid(root='/storage/1008ljt/courses/DL/exp4/data', name='CiteSeer', transform=transform)
+        else:
+            raise NotImplementedError
+        data = dataset[0]
         num_features = data[0].num_features
         num_classes = dataset.num_classes
 

@@ -8,12 +8,10 @@ from trainer import Trainer
 from utils import evaluate
 
 if __name__ == '__main__':
-    dataset = Planetoid(root='/storage/1008ljt/courses/DL/exp4/data', name='Cora')
-    # dataset = Planetoid(root='/storage/1008ljt/courses/DL/exp4/data', name='CiteSeer')
-    data = dataset[0]
-
-    test_ppi = True
-    if test_ppi:
+    dataset = 'PPI'
+    print(f'performing on dataset: {dataset}')
+    random.seed(86)
+    if dataset == 'PPI':
         type = 'multi-label'
         metric = 'F1 Score'
         # PPI dataset
@@ -45,6 +43,13 @@ if __name__ == '__main__':
     else:
         type = 'single-label'
         metric = 'Top 1 Accuracy'
+        if dataset == 'Cora':
+            dataset = Planetoid(root='/storage/1008ljt/courses/DL/exp4/data', name='Cora')
+        elif dataset == 'CiteSeer':
+            dataset = Planetoid(root='/storage/1008ljt/courses/DL/exp4/data', name='CiteSeer')
+        else:
+            raise NotImplementedError
+        data = dataset[0]
         num_features = data.num_features
         num_classes = dataset.num_classes
 
