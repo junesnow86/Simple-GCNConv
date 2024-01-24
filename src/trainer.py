@@ -56,7 +56,7 @@ class Trainer:
         else:
             raise NotImplementedError
 
-    def train_node_classification(self, epochs=200, lr=0.01, wait=3, type='single-label'):
+    def train_node_classification(self, epochs=200, lr=0.01, wait=5, type='single-label'):
         device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
         self.model.to(device)
         self.data.to(device)
@@ -121,7 +121,7 @@ class Trainer:
         self.plot_metric(type='F1 Score' if type == 'multi-label' else 'Top 1 Accuracy')
         return self.model
 
-    def train_link_prediction(self, epochs=200, lr=0.01, wait=3):
+    def train_link_prediction(self, epochs=200, lr=0.01, wait=5):
         device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
         self.model.to(device)
         train_data, val_data, _ = self.data

@@ -129,7 +129,7 @@ if __name__ == '__main__':
     )
 
     trainer = Trainer(model, data, task='Link Prediction', fig_name='../figures/lp/Cora')
-    trainer.train(epochs=200, lr=0.1)
+    trainer.train(epochs=100, lr=0.1)
 
     print('>> testing')
     cora_lp_result = evaluate(model, data[2], 'Link Prediction')
@@ -155,7 +155,7 @@ if __name__ == '__main__':
     )
 
     trainer = Trainer(model, data, task='Link Prediction', fig_name='../figures/lp/CiteSeer')
-    trainer.train(epochs=200, lr=0.1)
+    trainer.train(epochs=100, lr=0.1)
 
     print('>> testing')
     citeseer_lp_result = evaluate(model, data[2], 'Link Prediction')
@@ -200,7 +200,7 @@ if __name__ == '__main__':
     )
 
     trainer = Trainer(model, data, task='Link Prediction', fig_name='../figures/lp/PPI')
-    trainer.train(epochs=200, lr=0.1)
+    trainer.train(epochs=100, lr=0.1)
 
     print('>> testing')
     ppi_lp_result = evaluate(model, data[2], 'Link Prediction')
@@ -213,4 +213,3 @@ if __name__ == '__main__':
     print(f'Link Prediction AUC on Cora: {cora_lp_result:.4f}')
     print(f'Link Prediction AUC on CiteSeer: {citeseer_lp_result:.4f}')
     print(f'Link Prediction AUC on PPI: {ppi_lp_result:.4f}')
-
